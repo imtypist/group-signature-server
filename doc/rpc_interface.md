@@ -761,7 +761,9 @@ result: 创建生成的群公钥信息
     "jsonrpc": "2.0",
     "method": "linkable_ring_sig",
     "params": {"ring_name": "ring of the generated signature belongs to" ,
-        "message": "plain-text of the ring signature"
+        "message": "plain-text of the ring signature",
+        "id": "position of the member",
+        "ring_size": "optional, current ring size, must be larger than 1"
     }
 }
 ```
@@ -773,6 +775,8 @@ result: 创建生成的群公钥信息
 | ---------- | ---- |
 | ring_name | required, 产生环签名的环 |
 | message | required, 环签名对应的明文 |
+| id | required, 成员在环中的位置 |
+| ring_size | optional, 当前环的大小，必须大于1，默认为32|
 
 - **Response Result**
  
