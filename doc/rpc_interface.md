@@ -719,7 +719,8 @@ result: 创建生成的群公钥信息
         "ret_code": "0",
         "details": "success",
         "private_key": "generated private key for the joined member",
-        "public_key": "generated public key for the joined member"
+        "public_key": "generated public key for the joined member",
+        "result": "position of the ring member"
     }
 }
 
@@ -743,6 +744,7 @@ result: 创建生成的群公钥信息
 | details | 说明信息，若成员加入环成功，输出success; 否则输出出错信息 |
 | private_key | 新加入的环成员私钥 |
 | public_key | 新加入的环成员的公钥 |
+| result | 成员在环中的位置 |
 
 <br>
 
