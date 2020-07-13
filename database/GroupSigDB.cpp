@@ -71,8 +71,8 @@ int GroupSigDB::store_gamma(const std::string &group_name,
 //gsk info
 int GroupSigDB::store_gsk(const std::string &group_name,
                           const std::string &member_id,
-                          const std::string &gsk_pass,
-                          const std::string &gsk_info)
+                          const std::string &gsk_info,
+                          const std::string &gsk_pass)
 {
     (void)gsk_pass;
     //TODO:gsk_pass verify

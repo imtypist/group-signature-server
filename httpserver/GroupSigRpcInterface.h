@@ -74,10 +74,10 @@ public:
                                                        NULL),
                                     &GroupSigRpcInterface::open_cert);
                 //revoke member
-                bind_and_add_method(jsonrpc::Procedure("revoke_memeber",
+                bind_and_add_method(jsonrpc::Procedure("revoke_member",
                                                        jsonrpc::PARAMS_BY_NAME, jsonrpc::JSON_STRING,
                                                        "group_name", jsonrpc::JSON_STRING,
-                                                       "revoke_member", jsonrpc::JSON_STRING,
+                                                       "revoked_member", jsonrpc::JSON_STRING,
                                                        "gm_pass", jsonrpc::JSON_STRING,
                                                        NULL),
                                     &GroupSigRpcInterface::revoke_member);
@@ -87,7 +87,7 @@ public:
                                                        "group_name", jsonrpc::JSON_STRING,
                                                        "group_member", jsonrpc::JSON_STRING,
                                                        NULL),
-                                    &GroupSigRpcInterface::revoke_member);
+                                    &GroupSigRpcInterface::revoke_update_private_key);
                 //get interfaces
                 //gpk info
                 bind_and_add_method(jsonrpc::Procedure("get_public_info",

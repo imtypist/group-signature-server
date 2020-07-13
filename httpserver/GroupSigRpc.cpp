@@ -271,7 +271,7 @@ Json::Value GroupSigRpc::join_group(const std::string &group_name,
                                    pbc_param, gmsk_info, gpk_info, gamma_info);
 
     int status = db_interface->store_gsk(group_name,
-                                         member_id, gsk_pass, gsk_info);
+                                         member_id, gsk_info, gsk_pass);
     prefix = "store private key for " + member_id;
     bool success = Common::DB_access_ret(ret_json, status, KEY_EXIST,
                                          prefix);
@@ -439,16 +439,150 @@ Json::Value GroupSigRpc::open_cert(const std::string &group_name,
 Json::Value GroupSigRpc::revoke_member(const std::string &group_name,
                                        const std::string &revoked_member, std::string &gm_pass)
 {
-    (void)group_name;
-    (void)revoked_member;
     (void)gm_pass;
-    return Json::Value(Json::nullValue);
+    //group exists?
+    std::string gpk_info;
+    // std::string old_gpk_info;
+    Json::Value ret_json;
+    std::string prefix = "group " + group_name;
+    bool group_exist = get_group_public_info(gpk_info,
+                                             ret_json, group_name, KEY_EXIST, prefix);
+    if (!group_exist)
+        return ret_json;
+    //get system param
+    std::string pbc_param;
+    std::string algorithm_info;
+    bool get_param_succ = parse_param(pbc_param, algorithm_info,
+                                      ret_json, group_name);
+    if (!get_param_succ)
+        return ret_json;
+    //###load gsk info
+    LOG(DEBUG) << "get gsk info for revoke member";
+    std::string gsk_info;
+    prefix = "member " + revoked_member;
+    bool member_exist = get_gsk_info(gsk_info, ret_json,
+                                     group_name, revoked_member, KEY_EXIST, prefix);
+    if (!member_exist)
+        return ret_json;
+    ///get gamma info
+    std::string gamma_info;
+    prefix = "gamma of " + group_name;
+    bool gamma_exist = get_gamma(gamma_info, ret_json,
+                                 group_name, KEY_EXIST, prefix);
+    if (!gamma_exist)
+    {
+        LOG(ERROR) << prefix << " failed";
+        return ret_json;
+    }
+    // revoke member, update gpk info
+    // old_gpk_info = gpk_info;
+    int internal_ret = GroupSigApi::revoke_member(gpk_info, algorithm_info, pbc_param, gsk_info, gamma_info);
+    if (internal_ret != SUCCESS)
+    {
+        std::string info = "revoke member failed";
+        Common::get_ret_info(ret_json, internal_ret, info);
+        return ret_json;
+    }
+    // store revoke list
+    std::vector<std::string> new_gpks_info;
+    new_gpks_info.push_back(gpk_info);
+    std::string gone_info = GroupSigApi::get_g1_list(new_gpks_info);
+    int status = db_interface->store_revoked_list(group_name,
+                                         revoked_member, gsk_info, gone_info);
+    prefix = "store revoked list";
+    bool success = Common::DB_access_ret(ret_json, status, KEY_EXIST,
+                                         prefix);
+    if (!success)
+    {
+        LOG(ERROR) << prefix << " failed";
+        return ret_json;
+    }
+    // store new gpk
+    LOG(DEBUG) << "store gpk:" << gpk_info;
+    status = db_interface->store_gpk(group_name, gpk_info);
+    prefix = "store gpk";
+    bool succ = Common::DB_access_ret(ret_json, status, KEY_EXIST, prefix);
+    if (!succ)
+        return ret_json;
+
+    Common::get_ret_info<string>(ret_json, gpk_info);
+    return ret_json;
 }
 
 Json::Value GroupSigRpc::revoke_update_private_key(const std::string &group_name,
                                                    const std::string &member_id)
 {
-    (void)group_name;
-    (void)member_id;
-    return Json::Value(Json::nullValue);
+    // (void)group_name;
+    // (void)member_id;
+    // return Json::Value(Json::nullValue);
+    Json::Value ret_json;
+    //group exists?
+    std::string gpk_info;
+    std::string prefix = "group " + group_name;
+    bool group_exist = get_group_public_info(gpk_info,
+                                             ret_json, group_name, KEY_EXIST, prefix);
+    if (!group_exist)
+        return ret_json;
+    //###load gsk info
+    LOG(DEBUG) << "get gsk info for update member gsk";
+    std::string gsk_info;
+    prefix = "member " + member_id;
+    bool member_exist = get_gsk_info(gsk_info, ret_json,
+                                     group_name, member_id, KEY_EXIST, prefix);
+    if (!member_exist)
+        return ret_json;
+    //get system param
+    std::string pbc_param;
+    std::string algorithm_info;
+    bool get_param_succ = parse_param(pbc_param, algorithm_info,
+                                      ret_json, group_name);
+    if (!get_param_succ)
+        return ret_json;
+    std::string revoke_list;
+    // load_revoked_list
+    int status = db_interface->load_revoked_list(revoke_list, group_name);
+    prefix = "load_revoked_list";
+    bool success = Common::DB_access_ret(ret_json, status, true,
+                                         prefix);
+    // std::cout << status << " " << KEY_EXIST << std::endl;
+    if (!success)
+    {
+        LOG(ERROR) << prefix << " failed";
+        return ret_json;
+    }
+    // load_gone_list
+    std::string g1_list;
+    status = db_interface->load_gone_list(g1_list, group_name);
+    prefix = "load_gone_list";
+    success = Common::DB_access_ret(ret_json, status, true,
+                                         prefix);
+    // std::cout << g1_list << std::endl;
+    if (!success)
+    {
+        LOG(ERROR) << prefix << " failed";
+        return ret_json;
+    }
+    // revoke_update_private_key
+    int internal_ret = GroupSigApi::revoke_update_private_key(gsk_info, algorithm_info, pbc_param, revoke_list, g1_list, gpk_info);
+    // std::cout << gsk_info << std::endl;
+
+    if (internal_ret != SUCCESS)
+    {
+        std::string info = "revoke_update_private_key failed";
+        Common::get_ret_info(ret_json, internal_ret, info);
+        return ret_json;
+    }
+    // store gsk
+    status = db_interface->store_gsk(group_name,
+                                         member_id, gsk_info);
+    prefix = "store private key for " + member_id;
+    success = Common::DB_access_ret(ret_json, status, KEY_EXIST,
+                                         prefix);
+    if (!success)
+    {
+        LOG(ERROR) << prefix << " failed";
+        return ret_json;
+    }
+    Common::get_ret_info<string>(ret_json, gsk_info);
+    return ret_json;
 }
